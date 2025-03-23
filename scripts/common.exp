@@ -1,0 +1,71 @@
+#!/usr/bin/expect
+# Common parameters and helper functions
+
+# SSH login handler
+proc do_ssh_login { SSH_PASSWORD } {
+
+	while 1 {
+	    expect {
+	        "\])? " {
+	            send "yes\r"
+	            sleep .5
+	        }
+	        "assword:" {
+	            send "$SSH_PASSWORD\r"
+	            sleep .5
+	        }
+	        " $*" {
+	            send "\r"
+                    break
+	        }
+		eof {
+			puts "\[WARN\] Encountered end-of-file, aborting"
+			return 1
+		}
+		timeout {
+			puts "\[ERROR\] Timeout occured, aborting"
+                        return 1
+		}
+	    }
+	}
+
+	return 0
+}
+
+# SCP copy to handler
+proc scp_to { SSH_USERNAME SSH_PASSWORD TARGET_IP SRC_PATH DST_PATH } {
+
+        spawn scp -r $SRC_PATH $SSH_USERNAME@$TARGET_IP:$DST_PATH
+
+        # Make sure we survive the usual "SSH are you sure you want to continue connecting"-question and transmit password if asked for
+        while 1 {
+          expect {
+            eof {
+                break
+            }
+            "\])? " {
+                send "yes\r"
+                sleep .5
+            }
+            "assword:" {
+                send "$SSH_PASSWORD\r"
+                sleep .5
+            }
+            timeout {
+		puts "\[ERROR\] Timeout occured, aborting"
+                return 1
+            }
+          }
+        }
+        
+	lassign [wait] pid spawnid os_error_flag value
+
+        if { 0 != $value } {
+            puts "\[ERROR\] Error occured copying file"
+            close
+            return 1
+        }
+
+        return 0
+}
+

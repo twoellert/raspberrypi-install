@@ -1,0 +1,38 @@
+#!/usr/bin/expect
+# Execute a command via SSH
+
+# Check for the amount of input arguments
+if { $argc < 4 } {
+    puts "\[ERROR\] Invalid amount of input arguments, <4> expected, given <$argc>, e.g. <IP> <SSH_USERNAME> <SSH_PASSWORD> <CMD>, aborting"
+    exit 1
+} elseif { $argc > 4 } {
+    puts "\[ERROR\] Invalid amount of input arguments, <4> expected, given <$argc>, e.g. <IP> <SSH_USERNAME> <SSH_PASSWORD> <CMD>, aborting"
+    exit 1
+}
+
+# Retrieve the input arguments
+set ARG_IP [lindex $argv 0]
+set ARG_SSH_USERNAME [lindex $argv 1]
+set ARG_SSH_PASSWORD [lindex $argv 2]
+set ARG_CMD [lindex $argv 3]
+set timeout -1
+
+# Include main helper
+set SCRIPT_DIR [file dirname $argv0]
+source $SCRIPT_DIR/common.exp
+
+spawn ssh $ARG_SSH_USERNAME@$ARG_IP
+set return_value [do_ssh_login $ARG_SSH_PASSWORD]
+if { 0 != $return_value } {
+    puts "\[ERROR\] Error occured during SSH login"
+    exit 1
+}
+
+expect " $*"
+send "$ARG_CMD\r"
+expect " $*"
+
+close
+
+exit 0
+
